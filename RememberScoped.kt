@@ -1,8 +1,11 @@
+package ru.tech.cookhelper.presentation.ui.utils.scope
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalSavedStateRegistryOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -21,6 +24,8 @@ fun <VM : ViewModel> rememberScoped(key: Any? = null, builder: @Composable () ->
 
     val viewModelStore = LocalViewModelStoreOwner.current?.viewModelStore
 
+    val savedStateRegistry = LocalSavedStateRegistryOwner.current.savedStateRegistry
+
     ObserveLifecycleWithScopedViewModelContainer(scopedViewModelContainer)
 
     val internalKey = rememberSaveable { UUID.randomUUID().toString() }
@@ -36,10 +41,12 @@ fun <VM : ViewModel> rememberScoped(key: Any? = null, builder: @Composable () ->
         onDispose {
             scopedViewModelContainer.onDisposedFromComposition(
                 key = internalKey,
-                viewModelStore = viewModelStore!!
+                viewModelStore = viewModelStore!!,
+                savedStateRegistry = savedStateRegistry
             )
         }
     }
+
 
     return scopedViewModel
 }

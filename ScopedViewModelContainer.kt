@@ -1,8 +1,11 @@
+package ru.tech.cookhelper.presentation.ui.utils.scope
+
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.*
 import androidx.lifecycle.ViewModelClearer.clearViewModel
 import androidx.lifecycle.ViewModelClearer.getPrivateProperty
 import androidx.lifecycle.ViewModelClearer.setAndReturnPrivateProperty
+import androidx.savedstate.SavedStateRegistry
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -11,6 +14,8 @@ import java.util.concurrent.ConcurrentSkipListSet
 class ScopedViewModelContainer : ViewModel(), LifecycleEventObserver {
 
     private var viewModelStore: ViewModelStore? = null
+
+    private var savedStateRegistry: SavedStateRegistry? = null
 
     private var isInForeground = true
 
@@ -45,8 +50,9 @@ class ScopedViewModelContainer : ViewModel(), LifecycleEventObserver {
         }
     }
 
-    fun onDisposedFromComposition(key: String, viewModelStore: ViewModelStore) {
+    fun onDisposedFromComposition(key: String, viewModelStore: ViewModelStore, savedStateRegistry: SavedStateRegistry) {
         this.viewModelStore = viewModelStore
+        this.savedStateRegistry = savedStateRegistry
         markedForDisposal.add(key)
         scheduleToDisposeBeforeGoingToBackground(key)
     }
@@ -86,11 +92,13 @@ class ScopedViewModelContainer : ViewModel(), LifecycleEventObserver {
 
     @Suppress("UNCHECKED_CAST")
     private fun clearDisposedViewModel(scopedViewModel: ViewModel) {
+        val name = scopedViewModel.javaClass.name
         val mMap = viewModelStore.getPrivateProperty("mMap") as HashMap<String, ViewModel>
-        val key = "$TAG:${scopedViewModel.javaClass.name}"
+        val key = "$TAG:$name"
         mMap[key]?.clearViewModel()
         mMap.remove(key)
         viewModelStore.setAndReturnPrivateProperty("mMap", mMap)
+        savedStateRegistry?.unregisterSavedStateProvider(name)
     }
 
     private fun cancelDisposal(key: String) {
